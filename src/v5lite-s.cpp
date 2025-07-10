@@ -215,43 +215,44 @@ static void generate_proposals(const ncnn::Mat &anchors, int stride, const ncnn:
 
                             objects.push_back(obj);
                         }
-                    } else {
-                        for (int k = 0; k < num_class; k++) {
-                            float score = featptr[5 + k];
-                            if (score > class_score) {
-                                class_index = k;
-                                class_score = score;
-                            }
+                    }
+                } else {
+                    // For lower thresholds, process all detections
+                    for (int k = 0; k < num_class; k++) {
+                        float score = featptr[5 + k];
+                        if (score > class_score) {
+                            class_index = k;
+                            class_score = score;
                         }
-                        float confidence = sigmoid(box_score) * sigmoid(class_score);
+                    }
+                    float confidence = sigmoid(box_score) * sigmoid(class_score);
 
-                        if (confidence >= prob_threshold) {
-                            float dx = sigmoid(featptr[0]);
-                            float dy = sigmoid(featptr[1]);
-                            float dw = sigmoid(featptr[2]);
-                            float dh = sigmoid(featptr[3]);
+                    if (confidence >= prob_threshold) {
+                        float dx = sigmoid(featptr[0]);
+                        float dy = sigmoid(featptr[1]);
+                        float dw = sigmoid(featptr[2]);
+                        float dh = sigmoid(featptr[3]);
 
-                            float pb_cx = (dx * 2.f - 0.5f + j) * stride;
-                            float pb_cy = (dy * 2.f - 0.5f + i) * stride;
+                        float pb_cx = (dx * 2.f - 0.5f + j) * stride;
+                        float pb_cy = (dy * 2.f - 0.5f + i) * stride;
 
-                            float pb_w = pow(dw * 2.f, 2) * anchor_w;
-                            float pb_h = pow(dh * 2.f, 2) * anchor_h;
+                        float pb_w = pow(dw * 2.f, 2) * anchor_w;
+                        float pb_h = pow(dh * 2.f, 2) * anchor_h;
 
-                            float x0 = pb_cx - pb_w * 0.5f;
-                            float y0 = pb_cy - pb_h * 0.5f;
-                            float x1 = pb_cx + pb_w * 0.5f;
-                            float y1 = pb_cy + pb_h * 0.5f;
+                        float x0 = pb_cx - pb_w * 0.5f;
+                        float y0 = pb_cy - pb_h * 0.5f;
+                        float x1 = pb_cx + pb_w * 0.5f;
+                        float y1 = pb_cy + pb_h * 0.5f;
 
-                            Object obj;
-                            obj.rect.x = x0;
-                            obj.rect.y = y0;
-                            obj.rect.width = x1 - x0;
-                            obj.rect.height = y1 - y0;
-                            obj.label = class_index;
-                            obj.prob = confidence;
+                        Object obj;
+                        obj.rect.x = x0;
+                        obj.rect.y = y0;
+                        obj.rect.width = x1 - x0;
+                        obj.rect.height = y1 - y0;
+                        obj.label = class_index;
+                        obj.prob = confidence;
 
-                            objects.push_back(obj);
-                        }
+                        objects.push_back(obj);
                     }
                 }
             }
@@ -282,8 +283,8 @@ static int detect_yolov5(const cv::Mat& bgr, std::vector<Object>& objects)
 #endif
 
     const int target_size = 320;
-    const float prob_threshold = 0.60f;
-    const float nms_threshold = 0.60f;
+    const float prob_threshold = 0.25f;  // Lower threshold to detect more objects
+    const float nms_threshold = 0.45f;   // Slightly higher to keep more detections
 
     int img_w = bgr.cols;
     int img_h = bgr.rows;
